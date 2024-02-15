@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  model:
+    # Build the training service
+    build:
+      context: model_server
+      dockerfile: Dockerfile
+    image: model-server
+    container_name: model-server-service
+    ports:
+      - 8080:8080
+    restart: on-failure
+
+  web:
+    # Build the evaluation service
+    build:
+      context: web_server
+      dockerfile: Dockerfile
+    image: web-server
+    container_name: web-server-service
+    ports:
+      - 80:80
+    restart: on-failure
+
+  redis:
+    image: 'redis:latest'
+    container_name: redis-db-service
+    ports:
+      - 6379:6379
+    restart: on-failure
