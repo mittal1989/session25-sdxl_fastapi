@@ -2,6 +2,7 @@ import os
 import socket
 import subprocess
 from datetime import datetime
+import logging
 
 import redis
 
@@ -20,6 +21,27 @@ from contextlib import asynccontextmanager
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis-db-service")
 REDIS_PORT = os.environ.get("REDIS_PORT", "6379")
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "")
+
+
+##-----------------------##
+##       Logger          ##
+##-----------------------##
+
+log_file = datetime.now().strftime(f"{file_name}.log")
+
+logging.basicConfig(
+    filename=os.path.join(Out_Logs_Path, log_file),
+    level=logging.DEBUG,
+    format="%(asctime)s:%(levelname)s:%(message)s",
+    filemode="w",
+)
+
+# Creating an object
+logger = logging.getLogger()
+
+logger.debug("==============================================================")
+logger.debug("START PROGRAM ")
+logger.debug("==============================================================")
 
 
 @asynccontextmanager
@@ -91,7 +113,7 @@ def trainbg(model_id: str, prompt: str, max_steps: int, task_id: str):
                     bucket_name, file_key, f"images/{task_id}/{filename}"
                 )
                 # print(f"File {file_key} downloaded as {filename}")
-
+                logger.debug(f"File {file_key} downloaded as {filename}")
     try:
         command = [
             "accelerate",
@@ -117,11 +139,12 @@ def trainbg(model_id: str, prompt: str, max_steps: int, task_id: str):
             "--task-id",
             task_id,
         ]
-
+        
         result = subprocess.run(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-
+        logger.debug("Run the commmad")
+        
         train_tasks = {"status": "MODEL TRAINED; UPLOADING"}
         conn.hmset(task_id, train_tasks)
 
@@ -134,6 +157,7 @@ def trainbg(model_id: str, prompt: str, max_steps: int, task_id: str):
         train_tasks = {"status": "SUCCESS"}
         conn.hmset(task_id, train_tasks)
     except Exception as e:
+        logger.exception("Unexpected exception! %s", e)
         print(f"ERROR :: {e}")
         # train_tasks[model_id] = {"status": "ERROR"}
         train_tasks = {"status": "ERROR"}
